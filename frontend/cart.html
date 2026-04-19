@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Your Cart</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: radial-gradient(circle at top, #1e1b4b, #0f172a);
+      color: white;
+    }
+
+    header {
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(15px);
+    }
+
+    header h1 {
+      color: #fbbf24;
+    }
+
+    header a {
+      color: #cbd5e1;
+      text-decoration: none;
+    }
+
+    .cart-container {
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    .cart-item {
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px);
+      padding: 15px;
+      margin: 12px 0;
+      border-radius: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .cart-item img {
+      width: 50px;
+      height: 50px;
+      border-radius: 8px;
+    }
+
+    .cart-item button {
+      background: #44ef88;
+      border: none;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .cart-item button:hover {
+      background: #dc2626;
+    }
+
+    .qty-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .total {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 22px;
+      font-weight: bold;
+      color: #fbbf24;
+    }
+
+    .order-btn {
+      display: block;
+      margin: 25px auto;
+      padding: 14px 24px;
+      background: linear-gradient(45deg, #6366f1, #8b5cf6);
+      border: none;
+      border-radius: 25px;
+      font-size: 16px;
+      color: white;
+      cursor: pointer;
+    }
+
+    .empty {
+      text-align: center;
+      opacity: 0.7;
+    }
+
+    .back {
+      display: block;
+      text-align: center;
+      margin-top: 15px;
+      color: #cbd5e1;
+      text-decoration: none;
+    }
+
+    .back:hover {
+      color: #fbbf24;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>🛒 Your Cart</h1>
+  <a href="index.html">← Back</a>
+</header>
+
+<div class="cart-container">
+  <div id="cartItems"></div>
+  <h2 id="total" class="total"></h2>
+
+  <button class="order-btn" onclick="placeOrder()">
+    Place Order 💳
+  </button>
+
+  <a href="index.html" class="back">Continue Shopping →</a>
+</div>
+
+<script>
+
+// 🔐 Protect page
+if (!localStorage.getItem("token")) {
+  alert("Please login first 🔐");
+  window.location.href = "login.html";
+}
+
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+// 🛒 LOAD CART
+function loadCart() {
+
+  fetch("http://localhost:5000/products")
+    .then(res => res.json())
+    .then(products => {
+
+      let output = "";
+      let total = 0;
+
+      if (cart.length === 0) {
+        document.getElementById("cartItems").innerHTML =
+          "<p class='empty'>Cart is empty 😢</p>";
+        document.getElementById("total").innerText = "";
+        return;
+      }
+
+      cart.forEach(item => {
+
+        let product = products.find(p => p._id == item.id);
+
+        if (product) {
+
+          let subtotal = product.price * item.qty;
+          total += subtotal;
+
+          output += `
+            <div class="cart-item">
+
+              <div style="display:flex;align-items:center;gap:10px;">
+                <img src="${product.image}" 
+                     onerror="this.src='https://via.placeholder.com/50'">
+                <span>${product.name}</span>
+              </div>
+
+              <div class="qty-box">
+                <button onclick="decreaseQty('${item.id}')">−</button>
+                <span>${item.qty}</span>
+                <button onclick="increaseQty('${item.id}')">+</button>
+              </div>
+
+              <span>₹${subtotal}</span>
+
+              <button onclick="removeItem('${item.id}')">❌</button>
+
+            </div>
+          `;
+        }
+      });
+
+      document.getElementById("cartItems").innerHTML = output;
+      document.getElementById("total").innerText = "Total: ₹" + total;
+    });
+}
+
+// 🚀 INIT
+loadCart();
+
+
+// ➕ INCREASE
+function increaseQty(id) {
+  cart.forEach(item => {
+    if (item.id === id) item.qty += 1;
+  });
+  localStorage.setItem("cart", JSON.stringify(cart));
+  loadCart();
+}
+
+
+// ➖ DECREASE
+function decreaseQty(id) {
+  cart = cart.map(item => {
+    if (item.id === id && item.qty > 1) item.qty -= 1;
+    return item;
+  });
+  localStorage.setItem("cart", JSON.stringify(cart));
+  loadCart();
+}
+
+
+// ❌ REMOVE
+function removeItem(id) {
+  cart = cart.filter(item => item.id !== id);
+  localStorage.setItem("cart", JSON.stringify(cart));
+  loadCart();
+}
+
+
+// 💳 PLACE ORDER
+function placeOrder() {
+
+  if (!cart.length) {
+    alert("Cart is empty ❌");
+    return;
+  }
+
+  fetch("http://localhost:5000/products")
+    .then(res => res.json())
+    .then(products => {
+
+      let total = 0;
+
+      cart.forEach(item => {
+        let p = products.find(x => x._id == item.id);
+        if (p) total += p.price * item.qty;
+      });
+
+      return fetch("http://localhost:5000/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": localStorage.getItem("token")
+        },
+        body: JSON.stringify({
+          products: cart,
+          totalAmount: total
+        })
+      });
+    })
+    .then(res => res.json())
+    .then(() => {
+      alert("Order placed successfully 🎉");
+      localStorage.removeItem("cart");
+      location.reload();
+    });
+}
+
+</script>
+
+</body>
+</html>
