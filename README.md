@@ -71,7 +71,7 @@ CodeAlpha_EcommerceStore/
 ### 1. Clone the repository
 
 
-git clone https://github.com/yourusername/CodeAlpha_EcommerceStore.git
+git clone https://github.com/vds18/CodeAlpha_EcommerceStore.git
 
 
 ### 2. Navigate to backend
